@@ -1,10 +1,12 @@
-from docx import Document
-from docx.shared import Pt
+from docx import Document # type: ignore (warning suppressant for vscode that doesn't have the library globally)
+from docx.shared import Pt # type: ignore (warning suppressant for vscode that doesn't have the library globally)
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
 from tkinter import messagebox
-from dateutil import tz
+from datetime import datetime
+import pytz # type: ignore
+import sys
 import os
 import time
 import random
@@ -12,8 +14,23 @@ import re
 
 APP_VERSION = "2.0.0"
 
+class Helper():
+    def __init__(self):
+        self.taiwan_timezone = pytz.timezone('Asia/Taipei')
+
+    ## Turns a raw time string of, for example: "2024-12-11 23:08:17",
+    ## from taiwan timezone to the US time,
+    ## then format it in the checklist format: "%Y-%m-%d / %I:%M %p" ("2024-12-11 11:08 PM")
+    def convert_timezone(self, time):
+        us_time = datetime.fromisoformat(time)
+        us_time = us_time.astimezone(self.taiwan_timezone)
+        us_time = us_time.strftime(r"%Y-%m-%d / %I:%M %p")
+
+        return us_time
+
 class TextFileHandler():
     def __init__(self):
+        self.helper = Helper()
         self.source_files_dir = ""
 
     def get_file_names(self, source_files_dir):
@@ -41,35 +58,28 @@ class TextFileHandler():
             lines = file.readlines()
 
             for line in lines:
-                date_match = re.search(r"\d{4}[-]\d{2}[-]\d{2}\s\d{2}[:]\d{2}[:]\d{2}", file)
+                date_match = re.search(r"\d{4}[-]\d{2}[-]\d{2}\s\d{2}[:]\d{2}[:]\d{2}", line)
                 if date_match is not None:
                     dates.append(date_match.group())
 
-        start_date = ""
-        start_time = ""
-        end_date = ""
-        end_time = ""
+        start_time = None
+        end_time = None
 
         try:
             # there will be three matches, only get the first and last one.
             # look at a burn-in report for reference
-            start_date, start_time = dates[0].split("")
-            end_date, end_time = dates[2].split("")
+            start_time = dates[0]
+            end_time = dates[2]
 
-            start_time = start_time.split(":")
-            end_time = end_time.split(":")
-            
-            # get rid of the seconds. only keep hour and minute
-            start_time = start_time.pop(len(start_time))
-            end_time = end_time.pop(len(end_time))
-
-            convert_time(start_time)
-            convert_time(end_time)
+            start_time = self.helper.convert_timezone(start_time)
+            end_time = self.helper.convert_timezone(end_time)
 
         except:
-            sys.exit("""\n=============== Error! =================
-                          File: " + file_name + " doesn't have enough dates
-                          ========================================\n""")
+            sys.exit(f"""\n=============== Error! =================
+                           File: " + {file_name} + " doesn't have enough dates
+                           ========================================\n""")
+
+        return [serial, start_time, end_time]
         
 
 class DocxHandler():
@@ -89,44 +99,44 @@ class DocxHandler():
         paragraphs = checklist.paragraphs
 
         # fill in info
-        serial, start_time, end_time = txt_handler.find_info(file_name)
+        serial, start_time, end_time = self.txt_handler.find_info(file_name)
         serial_placeholder_found = False
         start_time_placeholder_found = False
         end_time_placeholder_found = False
 
         for paragraph in paragraphs:
             text = paragraph.text
-            if serial_placeholder in text:
-                text.replace(serial_placeholder, file_name)
+            if self.serial_placeholder in text:
+                text.replace(self.serial_placeholder, serial)
                 serial_placeholder_found = True
 
-            if start_time_placeholder in text:
-                text.replace(start_time_placeholder, start_time)
+            if self.start_time_placeholder in text:
+                text.replace(self.start_time_placeholder, start_time)
                 start_time_placeholder_found = True
 
-            if end_time_placeholder in text:
-                text.replace(end_time_placeholder, end_time)
+            if self.end_time_placeholder in text:
+                text.replace(self.end_time_placeholder, end_time)
                 end_time_placeholder_found = True
 
         # Check for any missing placeholders
         error = False
 
         if not serial_placeholder_found:
-            print("\n======== Error! =======
-                     Checklist template doesn't have {serial number} placeholder!
-                     =======================\n")
+            print("""\n======== Error! =======
+                       Checklist template doesn't have {serial number} placeholder!
+                       =======================\n""")
             error = True
 
         if not start_time_placeholder_found:
-            print("\n======== Error! =======
-                     Checklist template doesn't have {start time} placeholder!
-                     =======================\n")
+            print("""\n======== Error! =======
+                       Checklist template doesn't have {start time} placeholder!
+                      =======================\n""")
             error = True
 
         if not end_time_placeholder_found:
-            print("\n======== Error! =======
-                     Checklist template doesn't have {end time} placeholder!
-                     =======================\n")
+            print("""\n======== Error! =======
+                       Checklist template doesn't have {end time} placeholder!
+                       =======================\n""")
             error = True
 
         if error:
