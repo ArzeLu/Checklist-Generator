@@ -1,3 +1,5 @@
+# TODO: make some sys exit warnings a pop up window instead.
+
 from docx import Document # type: ignore (warning suppressant for vscode that doesn't have the library globally)
 from docx.shared import Pt # type: ignore (warning suppressant for vscode that doesn't have the library globally)
 from tkinter import *
@@ -36,6 +38,7 @@ class TextFileHandler():
     def get_file_names(self, source_files_dir):
         self.source_files_dir = source_files_dir
         source_file_names = []
+        clean_file_names = []
 
         # Get burn in file names 
         for root, dirs, files in os.walk(source_files_dir):
@@ -43,22 +46,24 @@ class TextFileHandler():
 
         # Remove the file extensions from the file name strings
         for file in source_file_names:
-            file = os.path.splitext(file)[0]
+            clean_file_names.append(os.path.splitext(file)[0])
 
-        return source_file_names
+        return clean_file_names
 
-    def find_info(self, file_name):
+    def find_info(self, file_name, source_file_dir):
         serial = file_name
         start_time = ""
         end_time = ""
 
         # find burn in times from the burn in .txt
         dates = []
-        with open(file_name) as file:
+        with open(source_file_dir + "/" + file_name + ".log") as file:
             lines = file.readlines()
 
             for line in lines:
+                line = line.rstrip()
                 date_match = re.search(r"\d{4}[-]\d{2}[-]\d{2}\s\d{2}[:]\d{2}[:]\d{2}", line)
+                print(line)
                 if date_match is not None:
                     dates.append(date_match.group())
 
@@ -75,9 +80,14 @@ class TextFileHandler():
             end_time = self.helper.convert_timezone(end_time)
 
         except:
-            sys.exit(f"""\n=============== Error! =================
-                           File: " + {file_name} + " doesn't have enough dates
-                           ========================================\n""")
+            print("======")
+            print(dates)
+            print("======")
+            sys.exit(f"""
+            =============== Error! =================\n
+            File: "{file_name}" doesn't have enough dates\n
+            ========================================\n
+            """)
 
         return [serial, start_time, end_time]
         
@@ -95,11 +105,11 @@ class DocxHandler():
     ## Checks if any placeholder is missing from the checklist and throw appropriate exceptions
     ##
     ## Arguments: 1. The checklist template, 2. One target file name
-    def fill_checklist_info(self, checklist, file_name):
+    def fill_checklist_info(self, checklist, file_name, source_file_dir):
         paragraphs = checklist.paragraphs
 
         # fill in info
-        serial, start_time, end_time = self.txt_handler.find_info(file_name)
+        serial, start_time, end_time = self.txt_handler.find_info(file_name, source_file_dir)
         serial_placeholder_found = False
         start_time_placeholder_found = False
         end_time_placeholder_found = False
@@ -122,21 +132,27 @@ class DocxHandler():
         error = False
 
         if not serial_placeholder_found:
-            print("""\n======== Error! =======
-                       Checklist template doesn't have {serial number} placeholder!
-                       =======================\n""")
+            print("""
+            =============== Error! =================\n
+            Checklist template doesn't have {serial number} placeholder!\n
+            ========================================\n
+            """)
             error = True
 
         if not start_time_placeholder_found:
-            print("""\n======== Error! =======
-                       Checklist template doesn't have {start time} placeholder!
-                      =======================\n""")
+            print("""
+            =============== Error! =================\n
+            Checklist template doesn't have {start time} placeholder!\n
+            ========================================\n
+            """)
             error = True
 
         if not end_time_placeholder_found:
-            print("""\n======== Error! =======
-                       Checklist template doesn't have {end time} placeholder!
-                       =======================\n""")
+            print("""
+            =============== Error! =================\n
+            Checklist template doesn't have {end time} placeholder!\n
+            ========================================\n
+            """)
             error = True
 
         if error:
@@ -144,13 +160,43 @@ class DocxHandler():
 
     ## Generate checklists with appropriate fields
     ## Arguments: 1. directory of the checklist, 2. directory of the source files, 3. directory of generated files
+    ## Only checking the validity of directories here because it's the only time when they're used.
     def generate_checklists(self, checklist_dir, source_files_dir, destination_dir):
         source_file_names = self.txt_handler.get_file_names(source_files_dir)
         checklist = Document(checklist_dir)
 
+        # check if the directories are valid.
+        # use exists for both files and directories
+        error = False
+        if os.path.exists(checklist_dir) is not True:
+            print("""
+            =============== Error! =================\n
+            Invalid checklist directory!\n
+            ========================================\n
+            """)
+            error = True
+
+        if os.path.isdir(source_files_dir) is not True:
+            print("""
+            =============== Error! =================
+            Invalid source files directory!\n
+            ========================================\n
+            """)
+            error = True
+
+        if os.path.isdir(destination_dir) is not True:
+            print("""
+            =============== Error! =================\n
+            Invalid destination directory!\n
+            ========================================\n
+            """)
+            error = True
+
+        if error:
+            sys.exit()
+        
         for file_name in source_file_names:
-            print("ran")
-            self.fill_checklist_info(checklist, file_name)
+            self.fill_checklist_info(checklist, file_name, source_files_dir)
             checklist.save(destination_dir + "/" + file_name)
 
         
