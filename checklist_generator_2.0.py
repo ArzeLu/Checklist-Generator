@@ -1,4 +1,4 @@
-# TODO: make some sys exit warnings a pop up window instead.
+# TODO: replace sys exit warnings with pop up windows.
 
 from docx import Document # type: ignore (warning suppressant for vscode that doesn't have the library globally)
 from docx.shared import Pt # type: ignore (warning suppressant for vscode that doesn't have the library globally)
@@ -105,6 +105,7 @@ class DocxHandler():
     ##
     ## Arguments: 1. The checklist template, 2. One target file name
     def fill_checklist_info(self, checklist, file_name, source_file_dir):
+        new_checklist = Document()
         paragraphs = checklist.paragraphs
         tables = checklist.tables
         # fill in info
@@ -113,29 +114,34 @@ class DocxHandler():
         start_time_placeholder_found = False
         end_time_placeholder_found = False
 
+        for table in tables:
+            rows = table.rows
+            new_table = new_checklist.add_table()
+            for row in rows:
+                cells = row.cells
+                for cell in cells:
+                    text = cell.text
+                    print(text)
+                    if self.serial_placeholder in text:
+                        text.replace(self.serial_placeholder, serial)
+                        serial_placeholder_found = True
+                new_table.add_row(row)
+
         for paragraph in paragraphs:
             text = paragraph.text
-            print(text)
-            if self.serial_placeholder in text:
-                text.replace(self.serial_placeholder, serial)
-                serial_placeholder_found = True
-
             if self.start_time_placeholder in text:
                 text.replace(self.start_time_placeholder, start_time)
                 start_time_placeholder_found = True
+                new_checklist.add_paragraph(text)
+                continue
 
             if self.end_time_placeholder in text:
                 text.replace(self.end_time_placeholder, end_time)
                 end_time_placeholder_found = True
+                new_checklist.add_paragraph(text)
+                continue
 
-        for table in tables:
-            rows = table.rows
-            for row in rows:
-                cells = row.cells
-                for cell in cells:
-                    if self.serial_placeholder in text:
-                        text.replace(self.serial_placeholder, serial)
-                        serial_placeholder_found = True
+            new_checklist.add_paragraph(text)
 
         # Check for any missing placeholders
         error = False
@@ -167,7 +173,7 @@ class DocxHandler():
         if error:
             sys.exit()
 
-        return checklist
+        return new_checklist
 
     ## Generate checklists with appropriate fields
     ## Arguments: 1. directory of the checklist, 2. directory of the source files, 3. directory of generated files
@@ -207,9 +213,8 @@ class DocxHandler():
             sys.exit()
         
         for file_name in source_file_names:
-            print("Ran")
             new_checklist = self.fill_checklist_info(checklist, file_name, source_files_dir)
-            new_checklist.save(destination_dir + "/" + file_name)
+            new_checklist.save(destination_dir + "/" + file_name + ".docx")
 
         
 
