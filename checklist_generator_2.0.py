@@ -57,13 +57,12 @@ class TextFileHandler():
 
         # find burn in times from the burn in .txt
         dates = []
-        with open(source_file_dir + "/" + file_name + ".log") as file:
+        with open(source_file_dir + "/" + file_name + ".log", encoding = "utf_16") as file:
             lines = file.readlines()
 
             for line in lines:
                 line = line.rstrip()
                 date_match = re.search(r"\d{4}[-]\d{2}[-]\d{2}\s\d{2}[:]\d{2}[:]\d{2}", line)
-                print(line)
                 if date_match is not None:
                     dates.append(date_match.group())
 
@@ -107,7 +106,7 @@ class DocxHandler():
     ## Arguments: 1. The checklist template, 2. One target file name
     def fill_checklist_info(self, checklist, file_name, source_file_dir):
         paragraphs = checklist.paragraphs
-
+        tables = checklist.tables
         # fill in info
         serial, start_time, end_time = self.txt_handler.find_info(file_name, source_file_dir)
         serial_placeholder_found = False
@@ -116,6 +115,7 @@ class DocxHandler():
 
         for paragraph in paragraphs:
             text = paragraph.text
+            print(text)
             if self.serial_placeholder in text:
                 text.replace(self.serial_placeholder, serial)
                 serial_placeholder_found = True
@@ -127,6 +127,15 @@ class DocxHandler():
             if self.end_time_placeholder in text:
                 text.replace(self.end_time_placeholder, end_time)
                 end_time_placeholder_found = True
+
+        for table in tables:
+            rows = table.rows
+            for row in rows:
+                cells = row.cells
+                for cell in cells:
+                    if self.serial_placeholder in text:
+                        text.replace(self.serial_placeholder, serial)
+                        serial_placeholder_found = True
 
         # Check for any missing placeholders
         error = False
@@ -157,6 +166,8 @@ class DocxHandler():
 
         if error:
             sys.exit()
+
+        return checklist
 
     ## Generate checklists with appropriate fields
     ## Arguments: 1. directory of the checklist, 2. directory of the source files, 3. directory of generated files
@@ -196,8 +207,9 @@ class DocxHandler():
             sys.exit()
         
         for file_name in source_file_names:
-            self.fill_checklist_info(checklist, file_name, source_files_dir)
-            checklist.save(destination_dir + "/" + file_name)
+            print("Ran")
+            new_checklist = self.fill_checklist_info(checklist, file_name, source_files_dir)
+            new_checklist.save(destination_dir + "/" + file_name)
 
         
 
@@ -242,7 +254,7 @@ class UserInterface():
 
     def run(self):
         self.root.title("Checklist Generator")
-        self.root.geometry("500x200")
+        self.root.geometry("600x200")
         self.root.columnconfigure(0, weight = 1)
         self.root.rowconfigure(0, weight = 1)
         self.root.rowconfigure(1, weight = 1)
