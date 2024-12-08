@@ -116,7 +116,8 @@ class DocxHandler():
 
         for table in tables:
             rows = table.rows
-            new_table = new_checklist.add_table()
+            cols = table.columns
+            new_table = new_checklist.add_table(rows = len(rows), cols = len(cols))
             for row in rows:
                 cells = row.cells
                 for cell in cells:
@@ -222,9 +223,9 @@ class UserInterface():
     def __init__(self):
         self.root = Tk()
         self.doc_handler = DocxHandler()
-        self.source_files_dir = StringVar(self.root)
-        self.checklist_template_dir = StringVar(self.root)
-        self.destination_dir = StringVar(self.root)
+        self.source_files_dir = StringVar(self.root, value = "C:/Users/arze7/Downloads/burnin_reports")
+        self.checklist_template_dir = StringVar(self.root, value = "C:/Users/arze7/Downloads/Checklist_Template.docx")
+        self.destination_dir = StringVar(self.root, value = "C:/Users/arze7/Downloads")
         self.directory_entries = [self.source_files_dir, self.checklist_template_dir, self.destination_dir]
         self.emotes = ['📁', '👽', '🐱', '🦷', '🎁', '👾', '🦜', '💀', '💩', '🍥', '🥶', '💅', '🍕', '🚗', '🎃']
         self.emotes_count = 15
@@ -289,7 +290,7 @@ class UserInterface():
         destination_label.grid(column = 0, row = 2, columnspan = 3, padx = (5, 5), pady = (0, 5), sticky = N+S+W+E)
 
         random.seed(time.time_ns())  # time_ns() instead of time() because nanoseconds better
-        self.reroll()
+        # self.reroll()
         burnin_dir.grid(column = 3, row = 0, padx = (0, 1), sticky = N+S+W+E)
         checklist_dir.grid(column = 3, row = 1, padx = (1, 1), sticky = N+S+W+E)
         destination_dir.grid(column = 3, row = 2, padx = (1, 1), sticky = N+S+W+E)
