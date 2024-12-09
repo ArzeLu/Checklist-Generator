@@ -23,44 +23,32 @@ class DocxHandler():
     ##
     ## Arguments: 1. The checklist template, 2. One target file name
     def fill_checklist_info(self, checklist, file_name, source_file_dir):
-        new_checklist = Document()
-        paragraphs = checklist.paragraphs
-        tables = checklist.tables
+        new_checklist = checklist
+        paragraphs = new_checklist.paragraphs
+        tables = new_checklist.tables
         # fill in info
         serial, start_time, end_time = self.txt_handler.find_info(file_name, source_file_dir)
         serial_placeholder_found = False
         start_time_placeholder_found = False
         end_time_placeholder_found = False
 
-        for table in tables:
-            rows = table.rows
-            cols = table.columns
-            new_table = new_checklist.add_table(rows = len(rows), cols = len(cols))
-            for row in rows:
-                cells = row.cells
-                for cell in cells:
-                    text = cell.text
-                    print(text)
-                    if self.serial_placeholder in text:
-                        text.replace(self.serial_placeholder, serial)
-                        serial_placeholder_found = True
-                new_table.add_row(row)
-
         for paragraph in paragraphs:
-            text = paragraph.text
-            if self.start_time_placeholder in text:
-                text.replace(self.start_time_placeholder, start_time)
-                start_time_placeholder_found = True
-                new_checklist.add_paragraph(text)
-                continue
+            runs = paragraph.runs
+            for run in runs:
+                print(run.text)
+                if self.serial_placeholder in run.text:
+                    run.text = run.text.replace(self.serial_placeholder, serial)
+                    serial_placeholder_found = True
 
-            if self.end_time_placeholder in text:
-                text.replace(self.end_time_placeholder, end_time)
-                end_time_placeholder_found = True
-                new_checklist.add_paragraph(text)
-                continue
+                if self.start_time_placeholder in run.text:
+                    run.text = run.text.replace(self.start_time_placeholder, start_time)
+                    start_time_placeholder_found = True
+                    continue
 
-            new_checklist.add_paragraph(text)
+                if self.end_time_placeholder in run.text:
+                    run.text = run.text.replace(self.end_time_placeholder, end_time)
+                    end_time_placeholder_found = True
+                    continue
 
         # Check for any missing placeholders
         error = False
