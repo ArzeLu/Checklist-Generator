@@ -1,12 +1,14 @@
 import os
 import sys
 import re
+from tkinter import messagebox
 
 # local imports
 from helper import Helper
 
 class TextFileHandler():
-    def __init__(self):
+    def __init__(self, root):
+        self.root = root
         self.helper = Helper()
         self.source_files_dir = ""
 
@@ -54,13 +56,6 @@ class TextFileHandler():
             end_time = self.helper.convert_timezone(end_time)
 
         except:
-            print("======")
-            print(dates)
-            print("======")
-            sys.exit(f"""
-            =============== Error! =================\n
-            File: "{file_name}" doesn't have enough dates\n
-            ========================================\n
-            """)
+            return [None, None, None]
 
         return [serial, start_time, end_time]

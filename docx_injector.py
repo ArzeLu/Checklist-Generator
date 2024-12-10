@@ -15,10 +15,10 @@ APP_VERSION = "2.0.0"
 class UserInterface():
     def __init__(self):
         self.root = Tk()
-        self.doc_handler = DocxHandler()
-        self.source_files_dir = StringVar(self.root, value = "C:/Users/arze7/Downloads/burnin_reports")
-        self.checklist_template_dir = StringVar(self.root, value = "C:/Users/arze7/Downloads/Checklist_Template.docx")
-        self.destination_dir = StringVar(self.root, value = "C:/Users/arze7/Downloads")
+        self.doc_handler = DocxHandler(self.root)
+        self.source_files_dir = StringVar(self.root)
+        self.checklist_template_dir = StringVar(self.root)
+        self.destination_dir = StringVar(self.root)
         self.directory_entries = [self.source_files_dir, self.checklist_template_dir, self.destination_dir]
         self.emotes = ['📁', '👽', '🐱', '🦷', '🎁', '👾', '🦜', '💀', '💩', '🍥', '🥶', '💅', '🍕', '🚗', '🎃']
         self.emotes_count = 15
@@ -47,7 +47,7 @@ class UserInterface():
         time.sleep(0.3)
 
         for entry in self.directory_entries:
-            entry.set(self.choose_emote())
+            entry.set("       --> " + self.choose_emote() + " <--")
             self.root.update()
             time.sleep(0.2)
 
